@@ -1,0 +1,116 @@
+{{- if .Values.frontend.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "luggage-locker.frontendFullname" . }}
+  namespace: {{ include "luggage-locker.namespace" . }}
+  labels:
+    {{- include "luggage-locker.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+  {{- $frontendAnnotations := .Values.frontend.ingress.annotations | default dict }}
+  {{- if or (gt (len $frontendAnnotations) 0) (and .Values.frontend.ingress.tls.enabled .Values.certManager.clusterIssuer) }}
+  annotations:
+    {{- if and .Values.frontend.ingress.tls.enabled .Values.certManager.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.certManager.clusterIssuer | quote }}
+    {{- end }}
+    {{- with $frontendAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.frontend.ingress.className }}
+  {{- if .Values.frontend.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.frontend.ingress.host }}
+      secretName: {{ .Values.frontend.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.frontend.ingress.host }}
+      http:
+        paths:
+          - path: {{ .Values.frontend.ingress.path }}
+            pathType: {{ .Values.frontend.ingress.pathType }}
+            backend:
+              service:
+                name: {{ include "luggage-locker.frontendFullname" . }}
+                port:
+                  name: http
+{{- end }}
+{{- if .Values.convex.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ printf "%s-api" (include "luggage-locker.convexFullname" .) }}
+  namespace: {{ include "luggage-locker.namespace" . }}
+  labels:
+    {{- include "luggage-locker.labels" . | nindent 4 }}
+    app.kubernetes.io/component: convex
+  {{- $convexAnnotations := .Values.convex.ingress.annotations | default dict }}
+  {{- if or (gt (len $convexAnnotations) 0) (and .Values.convex.ingress.tls.enabled .Values.certManager.clusterIssuer) }}
+  annotations:
+    {{- if and .Values.convex.ingress.tls.enabled .Values.certManager.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.certManager.clusterIssuer | quote }}
+    {{- end }}
+    {{- with $convexAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.convex.ingress.className }}
+  {{- if .Values.convex.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.convex.ingress.apiHost }}
+      secretName: {{ .Values.convex.ingress.tls.apiSecretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.convex.ingress.apiHost }}
+      http:
+        paths:
+          - path: {{ .Values.convex.ingress.path }}
+            pathType: {{ .Values.convex.ingress.pathType }}
+            backend:
+              service:
+                name: {{ include "luggage-locker.convexFullname" . }}
+                port:
+                  name: api
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ printf "%s-site" (include "luggage-locker.convexFullname" .) }}
+  namespace: {{ include "luggage-locker.namespace" . }}
+  labels:
+    {{- include "luggage-locker.labels" . | nindent 4 }}
+    app.kubernetes.io/component: convex
+  {{- if or (gt (len $convexAnnotations) 0) (and .Values.convex.ingress.tls.enabled .Values.certManager.clusterIssuer) }}
+  annotations:
+    {{- if and .Values.convex.ingress.tls.enabled .Values.certManager.clusterIssuer }}
+    cert-manager.io/cluster-issuer: {{ .Values.certManager.clusterIssuer | quote }}
+    {{- end }}
+    {{- with $convexAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.convex.ingress.className }}
+  {{- if .Values.convex.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.convex.ingress.siteHost }}
+      secretName: {{ .Values.convex.ingress.tls.siteSecretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.convex.ingress.siteHost }}
+      http:
+        paths:
+          - path: {{ .Values.convex.ingress.path }}
+            pathType: {{ .Values.convex.ingress.pathType }}
+            backend:
+              service:
+                name: {{ include "luggage-locker.convexFullname" . }}
+                port:
+                  name: site
+{{- end }}

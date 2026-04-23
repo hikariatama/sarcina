@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "luggage-locker.frontendFullname" . }}
+  namespace: {{ include "luggage-locker.namespace" . }}
+  labels:
+    {{- include "luggage-locker.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  type: {{ .Values.frontend.service.type }}
+  selector:
+    {{- include "luggage-locker.componentLabels" (dict "root" . "component" "frontend") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.frontend.service.port }}
+      targetPort: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "luggage-locker.convexFullname" . }}
+  namespace: {{ include "luggage-locker.namespace" . }}
+  labels:
+    {{- include "luggage-locker.labels" . | nindent 4 }}
+    app.kubernetes.io/component: convex
+spec:
+  type: {{ .Values.convex.service.type }}
+  selector:
+    {{- include "luggage-locker.componentLabels" (dict "root" . "component" "convex") | nindent 4 }}
+  ports:
+    - name: api
+      port: {{ .Values.convex.service.apiPort }}
+      targetPort: api
+    - name: site
+      port: {{ .Values.convex.service.sitePort }}
+      targetPort: site
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "luggage-locker.postgresFullname" . }}
+  namespace: {{ include "luggage-locker.namespace" . }}
+  labels:
+    {{- include "luggage-locker.labels" . | nindent 4 }}
+    app.kubernetes.io/component: postgres
+spec:
+  selector:
+    {{- include "luggage-locker.componentLabels" (dict "root" . "component" "postgres") | nindent 4 }}
+  ports:
+    - name: postgres
+      port: {{ .Values.postgres.service.port }}
+      targetPort: postgres

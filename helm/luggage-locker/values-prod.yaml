@@ -1,0 +1,36 @@
+certManager:
+  clusterIssuer: letsencrypt-prod
+
+frontend:
+  replicaCount: 2
+  ingress:
+    host: sarcina.dgazizullin.dev
+    path: /
+    tls:
+      secretName: sarcina-frontend-tls
+  env:
+    convexUrl: https://backend.sarcina.dgazizullin.dev
+    basePath: /
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  autoscaling:
+    enabled: true
+
+convex:
+  replicaCount: 1
+  ingress:
+    apiHost: backend.sarcina.dgazizullin.dev
+    siteHost: convex.sarcina.dgazizullin.dev
+    tls:
+      apiSecretName: sarcina-convex-api-tls
+      siteSecretName: sarcina-convex-site-tls
+
+postgres:
+  persistence:
+    size: 10Gi
+    storageClass: local-path

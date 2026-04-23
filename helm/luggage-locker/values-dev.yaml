@@ -1,0 +1,14 @@
+frontend:
+  ingress:
+    host: dev.example.com
+    path: /
+  env:
+    convexUrl: https://backend.dev.example.com
+    basePath: /
+  autoscaling:
+    enabled: false
+
+convex:
+  ingress:
+    apiHost: backend.dev.example.com
+    siteHost: convex.dev.example.com

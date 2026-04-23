@@ -1,0 +1,68 @@
+services:
+  convex-backend:
+    image: ghcr.io/get-convex/convex-backend:${CONVEX_REV:-precompiled-2026-03-10-d9677dc}
+    restart: unless-stopped
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    ports:
+      - "127.0.0.1:${CONVEX_BACKEND_PORT:-3210}:3210"
+      - "127.0.0.1:${CONVEX_SITE_PROXY_PORT:-3211}:3211"
+    volumes:
+      - convex_data:/convex/data
+    environment:
+      APPLICATION_MAX_CONCURRENT_MUTATIONS: ${APPLICATION_MAX_CONCURRENT_MUTATIONS:-16}
+      APPLICATION_MAX_CONCURRENT_NODE_ACTIONS: ${APPLICATION_MAX_CONCURRENT_NODE_ACTIONS:-16}
+      APPLICATION_MAX_CONCURRENT_QUERIES: ${APPLICATION_MAX_CONCURRENT_QUERIES:-16}
+      APPLICATION_MAX_CONCURRENT_V8_ACTIONS: ${APPLICATION_MAX_CONCURRENT_V8_ACTIONS:-16}
+      CONVEX_CLOUD_ORIGIN: ${CONVEX_CLOUD_ORIGIN:-http://127.0.0.1:3210}
+      CONVEX_SITE_ORIGIN: ${CONVEX_SITE_ORIGIN:-http://127.0.0.1:3211}
+      DISABLE_METRICS_ENDPOINT: ${DISABLE_METRICS_ENDPOINT:-true}
+      DOCUMENT_RETENTION_DELAY: ${DOCUMENT_RETENTION_DELAY:-172800}
+      INSTANCE_NAME: ${CONVEX_INSTANCE_NAME:-sarcina}
+      INSTANCE_SECRET: ${CONVEX_INSTANCE_SECRET:-change-this-secret}
+      RUST_LOG: ${RUST_LOG:-info}
+    healthcheck:
+      test: curl -f http://localhost:3210/version
+      interval: 5s
+      start_period: 10s
+
+  convex-dashboard:
+    image: ghcr.io/get-convex/convex-dashboard:${CONVEX_REV:-precompiled-2026-03-10-d9677dc}
+    restart: unless-stopped
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    ports:
+      - "127.0.0.1:${CONVEX_DASHBOARD_PORT:-6791}:6791"
+    environment:
+      NEXT_PUBLIC_DEPLOYMENT_URL: ${NEXT_PUBLIC_DEPLOYMENT_URL:-http://127.0.0.1:3210}
+    depends_on:
+      convex-backend:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        VITE_ASSET_BASE: ${VITE_ASSET_BASE}
+        VITE_CONVEX_URL: ${VITE_CONVEX_URL}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:8080"
+    environment:
+      APP_CONVEX_URL: ${VITE_CONVEX_URL}
+      APP_BASE_PATH: ${VITE_APP_BASE_PATH}
+      APP_TERMINAL_NAME: ${VITE_APP_TERMINAL_NAME}
+      APP_SUPPORT_PHONE: ${VITE_APP_SUPPORT_PHONE}
+      APP_SUPPORT_CHAT: ${VITE_APP_SUPPORT_CHAT}
+    depends_on:
+      convex-backend:
+        condition: service_healthy
+    healthcheck:
+      test: wget -q -O /dev/null http://localhost:8080/healthcheck
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  convex_data:

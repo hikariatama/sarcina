@@ -1,0 +1,19 @@
+{{- if .Values.convex.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "luggage-locker.convexFullname" . }}-data
+  namespace: {{ include "luggage-locker.namespace" . }}
+  labels:
+    {{- include "luggage-locker.labels" . | nindent 4 }}
+    app.kubernetes.io/component: convex
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.convex.persistence.storageClass }}
+  storageClassName: {{ .Values.convex.persistence.storageClass }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.convex.persistence.size }}
+{{- end }}

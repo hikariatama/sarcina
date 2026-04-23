@@ -1,0 +1,136 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "luggage-locker.frontendFullname" . }}
+  namespace: {{ include "luggage-locker.namespace" . }}
+  labels:
+    {{- include "luggage-locker.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  replicas: {{ .Values.frontend.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "luggage-locker.componentLabels" (dict "root" . "component" "frontend") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "luggage-locker.labels" . | nindent 8 }}
+        app.kubernetes.io/component: frontend
+    spec:
+      {{- with .Values.frontend.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: frontend
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.frontend.service.targetPort }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "luggage-locker.frontendConfigName" . }}
+            - secretRef:
+                name: {{ include "luggage-locker.secretName" . }}
+          readinessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "luggage-locker.convexFullname" . }}
+  namespace: {{ include "luggage-locker.namespace" . }}
+  labels:
+    {{- include "luggage-locker.labels" . | nindent 4 }}
+    app.kubernetes.io/component: convex
+spec:
+  replicas: {{ .Values.convex.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "luggage-locker.componentLabels" (dict "root" . "component" "convex") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "luggage-locker.labels" . | nindent 8 }}
+        app.kubernetes.io/component: convex
+    spec:
+      containers:
+        - name: convex
+          image: "{{ .Values.convex.image.repository }}:{{ .Values.convex.image.tag }}"
+          imagePullPolicy: {{ .Values.convex.image.pullPolicy }}
+          ports:
+            - name: api
+              containerPort: {{ .Values.convex.service.apiPort }}
+            - name: site
+              containerPort: {{ .Values.convex.service.sitePort }}
+          env:
+            - name: INSTANCE_NAME
+              value: {{ .Values.convex.instanceName | quote }}
+            - name: INSTANCE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "luggage-locker.secretName" . }}
+                  key: CONVEX_INSTANCE_SECRET
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "luggage-locker.secretName" . }}
+                  key: POSTGRES_URL
+            - name: DO_NOT_REQUIRE_SSL
+              value: "1"
+            - name: CONVEX_CLOUD_ORIGIN
+              value: {{ printf "https://%s" .Values.convex.ingress.apiHost | quote }}
+            - name: CONVEX_SITE_ORIGIN
+              value: {{ printf "https://%s" .Values.convex.ingress.siteHost | quote }}
+            - name: RUST_LOG
+              value: {{ .Values.convex.env.rustLog | quote }}
+            - name: DISABLE_METRICS_ENDPOINT
+              value: {{ .Values.convex.env.disableMetricsEndpoint | quote }}
+            - name: DOCUMENT_RETENTION_DELAY
+              value: {{ .Values.convex.env.documentRetentionDelay | quote }}
+            - name: APPLICATION_MAX_CONCURRENT_MUTATIONS
+              value: {{ .Values.convex.env.applicationMaxConcurrentMutations | quote }}
+            - name: APPLICATION_MAX_CONCURRENT_NODE_ACTIONS
+              value: {{ .Values.convex.env.applicationMaxConcurrentNodeActions | quote }}
+            - name: APPLICATION_MAX_CONCURRENT_QUERIES
+              value: {{ .Values.convex.env.applicationMaxConcurrentQueries | quote }}
+            - name: APPLICATION_MAX_CONCURRENT_V8_ACTIONS
+              value: {{ .Values.convex.env.applicationMaxConcurrentV8Actions | quote }}
+          readinessProbe:
+            httpGet:
+              path: /version
+              port: api
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /version
+              port: api
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          {{- if .Values.convex.persistence.enabled }}
+          volumeMounts:
+            - name: convex-data
+              mountPath: /convex/data
+          {{- end }}
+          resources:
+            {{- toYaml .Values.convex.resources | nindent 12 }}
+      {{- if .Values.convex.persistence.enabled }}
+      volumes:
+        - name: convex-data
+          persistentVolumeClaim:
+            claimName: {{ include "luggage-locker.convexFullname" . }}-data
+      {{- end }}

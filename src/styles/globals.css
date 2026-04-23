@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+@theme {
+  --font-sans:
+    "DM Sans Variable", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-title:
+    "Roboto Flex Variable", ui-sans-serif, system-ui, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --color-brand: #e87000;
+  --color-surface: #ffffff;
+  --color-panel: #ffffff;
+  --color-border: #e87000;
+  --color-muted: rgb(0 0 0 / 0.5);
+  --breakpoint-hor: 75rem;
+}
+
+.text-wdth-115 {
+  font-variation-settings: "wdth" 115;
+}
+
+.text-wdth-300 {
+  font-variation-settings: "wdth" 300;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+input,
+textarea,
+select {
+  font: inherit;
+}

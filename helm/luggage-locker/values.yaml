@@ -1,0 +1,110 @@
+namespaceOverride: ""
+
+certManager:
+  clusterIssuer: letsencrypt-prod
+
+frontend:
+  image:
+    repository: ghcr.io/hikariatama/sarcina-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  imagePullSecrets:
+    - name: ghcr-pull
+  replicaCount: 2
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8080
+  ingress:
+    enabled: true
+    className: nginx
+    host: sarcina.dgazizullin.dev
+    path: /
+    pathType: Prefix
+    tls:
+      enabled: true
+      secretName: sarcina-frontend-tls
+    annotations: {}
+  env:
+    convexUrl: https://backend.sarcina.dgazizullin.dev
+    basePath: /
+    terminalName: "Terminal #3948"
+    supportPhone: "+7 (919)-123-45-67"
+    supportChat: "t.me/dgazizullin"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 3
+    cpuUtilization: 70
+    memoryUtilization: 80
+
+convex:
+  image:
+    repository: ghcr.io/get-convex/convex-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  instanceName: sarcina
+  service:
+    type: ClusterIP
+    apiPort: 3210
+    sitePort: 3211
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: local-path
+  ingress:
+    enabled: true
+    className: nginx
+    path: /
+    pathType: Prefix
+    apiHost: backend.sarcina.dgazizullin.dev
+    siteHost: convex.sarcina.dgazizullin.dev
+    tls:
+      enabled: true
+      apiSecretName: sarcina-convex-api-tls
+      siteSecretName: sarcina-convex-site-tls
+    annotations: {}
+  env:
+    rustLog: info
+    disableMetricsEndpoint: "true"
+    documentRetentionDelay: "172800"
+    applicationMaxConcurrentMutations: "16"
+    applicationMaxConcurrentNodeActions: "16"
+    applicationMaxConcurrentQueries: "16"
+    applicationMaxConcurrentV8Actions: "16"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
+
+postgres:
+  image:
+    repository: postgres
+    tag: "17"
+    pullPolicy: IfNotPresent
+  database: sarcina
+  username: sarcina
+  service:
+    port: 5432
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: local-path
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

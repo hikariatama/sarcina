@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "luggage-locker.frontendConfigName" . }}
+  namespace: {{ include "luggage-locker.namespace" . }}
+  labels:
+    {{- include "luggage-locker.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+data:
+  APP_CONVEX_URL: {{ .Values.frontend.env.convexUrl | quote }}
+  APP_BASE_PATH: {{ .Values.frontend.env.basePath | quote }}
+  APP_TERMINAL_NAME: {{ .Values.frontend.env.terminalName | quote }}
+  APP_SUPPORT_PHONE: {{ .Values.frontend.env.supportPhone | quote }}
+  APP_SUPPORT_CHAT: {{ .Values.frontend.env.supportChat | quote }}
